@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Défavorisation — Laurentides — 3. Popups et légende</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; }
+    #map { height: 100vh; }
+
+    .legende {
+      background: white;
+      padding: 10px 14px;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      line-height: 22px;
+    }
+    .legende i {
+      width: 18px;
+      height: 18px;
+      display: inline-block;
+      margin-right: 6px;
+      opacity: 0.75;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet-src.js"></script>
+  <script>
+    // Initialiser la carte centrée sur les Laurentides
+    const carte = L.map('map').setView([46.5, -74.5], 8);
+
+    // Ajouter le fond de carte OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(carte);
+
+    // Fonction utilitaire — convertit un texte avec virgule en nombre
+    function parserValeur(valeurBrute) {
+      const valeur = parseFloat(String(valeurBrute).replace(',', '.'));
+      return isNaN(valeur) ? null : valeur;
+    }
+
+    // Fonction de couleur — mêmes classes et couleurs que la symbologie QGIS
+    function getCouleur(valeurBrute) {
+      const valeur = parserValeur(valeurBrute);
+      if (valeur === null) return '#cccccc'; // gris — donnée manquante/invalide
+
+      return valeur > 0.049  ? '#d73027' :  // 0,049 – 0,076   (rouge — défavorisé)
+             valeur > 0.022  ? '#fc8d59' :  // 0,022 – 0,049   (orange)
+             valeur > -0.006 ? '#fee090' :  // -0,006 – 0,022  (jaune pâle)
+             valeur > -0.033 ? '#91cf60' :  // -0,033 – -0,006 (vert clair)
+                                '#1a9850';  // -0,06 – -0,033  (vert foncé — favorisé)
+    }
+
+    // Formate une valeur pour l'affichage dans le popup
+    function formaterValeur(valeurBrute) {
+      const valeur = parserValeur(valeurBrute);
+      return valeur === null ? 'Donnée non disponible' : valeur.toFixed(3);
+    }
+
+    // Charger le GeoJSON depuis un fichier local
+    fetch('laurentides_defavorisation.geojson')
+      .then(response => response.json())
+      .then(data => {
+        L.geoJSON(data, {
+          style: function(feature) {
+            return {
+              fillColor: getCouleur(feature.properties.defav_mat_2),
+              weight: 1,
+              opacity: 1,
+              color: 'white',
+              fillOpacity: 0.75
+            };
+          },
+          onEachFeature: function(feature, layer) {
+            const p = feature.properties;
+            layer.bindPopup(
+              '<strong>' + p.muni_nom + '</strong><br>' +
+              'Défavorisation matérielle (indice) : ' + formaterValeur(p.defav_mat_2) + '<br>' +
+              'Défavorisation sociale (indice) : ' + formaterValeur(p.defav_soc_2)
+            );
+          }
+        }).addTo(carte);
+      });
+
+    // Créer un contrôle légende
+    const legende = L.control({ position: 'bottomright' });
+    legende.onAdd = function() {
+      const div = L.DomUtil.create('div', 'legende');
+      div.innerHTML = '<strong>Défavorisation<br>matérielle (indice)</strong><br>';
+
+      const classes = [
+        { couleur: '#1a9850', label: '-0,06 à -0,033' },
+        { couleur: '#91cf60', label: '-0,033 à -0,006' },
+        { couleur: '#fee090', label: '-0,006 à 0,022' },
+        { couleur: '#fc8d59', label: '0,022 à 0,049' },
+        { couleur: '#d73027', label: '0,049 à 0,076' }
+      ];
+
+      classes.forEach(c => {
+        div.innerHTML +=
+          '<i style="background:' + c.couleur + '"></i>' + c.label + '<br>';
+      });
+
+      div.innerHTML += '<i style="background:#cccccc"></i>Donnée non disponible';
+
+      return div;
+    };
+    legende.addTo(carte);
+
+    // ✅ Résultat attendu : un clic sur une municipalité affiche un popup
+    // avec son nom et ses deux indices de défavorisation.
+    // Une légende apparaît en bas à droite, avec les classes numériques réelles.
+  </script>
+</body>
+</html>
