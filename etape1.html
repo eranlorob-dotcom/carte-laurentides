@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Défavorisation — Laurentides — 1. Carte vide</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; }
+    #map { height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet-src.js"></script>
+  <script>
+    // Initialiser la carte centrée sur les Laurentides
+    const carte = L.map('map').setView([46.5, -74.5], 8);
+
+    // Ajouter le fond de carte OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(carte);
+
+    // ✅ Résultat attendu : une carte OSM centrée sur les Laurentides s'affiche,
+    // sans aucune donnée superposée.
+  </script>
+</body>
+</html>
+
